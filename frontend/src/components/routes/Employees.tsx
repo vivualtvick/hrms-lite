@@ -2,14 +2,10 @@ import { useState } from "react";
 import { Plus, Search, Filter, Trash2, X } from "lucide-react";
 import toast from "react-hot-toast";
 
-const MOCK_EMPLOYEES = [
-  { id: "EMP001", name: "Alice Johnson", email: "alice@company.com", dept: "Engineering" },
-  { id: "EMP002", name: "Bob Smith", email: "bob@company.com", dept: "Marketing" },
-];
 
 export default function Employees() {
   // State for List Logic
-  const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
+  const [employees, setEmployees] = useState([]);
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
