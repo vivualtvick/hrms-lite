@@ -16,10 +16,10 @@ class EmployeeListView(APIView):
             if request.query_params.get('date'):
                 date = request.query_params.get('date')
                 datetime_object = datetime.strptime(date, "%Y-%m-%d")
-                employees = Employee.objects.filter(deleted_at__isnull=True, updated_at__date=datetime_object).values('id', 'full_name', 'email', 'department__name')
+                employees = Employee.objects.filter(deleted_at__isnull=True, updated_at__date=datetime_object).order_by('-updated_at').values('id', 'full_name', 'email', 'department__name')
                 return Response({'employees': employees})
             
-            employees = Employee.objects.all().values('id', 'full_name', 'email', 'department__name')
+            employees = Employee.objects.all().values('id', 'full_name', 'email', 'department__name').order_by('-updated_at')
             return Response({'employees': employees})
         except Exception as e:
             return Response({'error': str(e)}, status=500)

@@ -84,7 +84,6 @@ export default function Employees() {
   // NEW: Handle Date Reset
   const clearDateFilter = () => {
     setSelectedDate("");
-    queryClient.invalidateQueries({ queryKey: ["employees"] });
   };
 
   if (isLoading) return (
@@ -168,6 +167,68 @@ export default function Employees() {
         )}
       </div>
 
+      {/* --- ADD EMPLOYEE MODAL --- */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900">Add New Employee</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
+              <FormInput 
+                label="Full Name" 
+                placeholder="John Doe" 
+                value={formData.name}
+                onChange={(e: any) => setFormData({...formData, name: e.target.value})}
+                required
+              />
+              <FormInput 
+                label="Email Address" 
+                type="email" 
+                placeholder="john@company.com" 
+                value={formData.email}
+                onChange={(e: any) => setFormData({...formData, email: e.target.value})}
+                required
+              />
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Department
+                </label>
+                <select 
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm"
+                  value={formData.dept}
+                  onChange={(e) => setFormData({...formData, dept: e.target.value})}
+                  required
+                >
+                  <option value="" disabled>Select Department</option>
+                  {/* DYNAMIC INTEGRATION: Mapping your actual departments here */}
+                  {departments?.departments?.map((dept: any) => (
+                    <option key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+                
+              <div className="pt-2">
+                <button 
+                  type="submit"
+                  disabled={addMutation.isPending}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                >
+                  {addMutation.isPending && <Loader2 size={16} className="animate-spin" />}
+                  {addMutation.isPending ? "Creating Profile..." : "Confirm Add Employee"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Table & Modals (Stayed Same) */}
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
@@ -228,6 +289,19 @@ export default function Employees() {
         title="Delete Employee"
         description={`Are you sure you want to delete ${empToDelete?.name}? This action is permanent.`}
         confirmText={deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+      />
+    </div>
+  );
+}
+
+
+function FormInput({ label, ...props }: any) {
+  return (
+    <div className="space-y-1">
+      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
+      <input 
+        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm transition-all"
+        {...props}
       />
     </div>
   );
