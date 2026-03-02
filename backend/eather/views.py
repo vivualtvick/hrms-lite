@@ -4,6 +4,7 @@ from eather.models import *
 import re
 from django.db import IntegrityError
 from django.db.models import Avg, Case, When, IntegerField, Count
+from rest_framework.decorators import api_view
 
 
 class EmployeeListView(APIView):
@@ -19,9 +20,9 @@ class EmployeeListView(APIView):
     def post(self, request):
 
         try:
-            full_name = request.data.get('full_name')
+            full_name = request.data.get('name')
             email = request.data.get('email')
-            department_id = request.data.get('department_id')
+            department_id = request.data.get('dept')
 
             if not full_name or not email:
                 return Response({'error': 'Full name and email are required'}, status=400)
@@ -42,9 +43,9 @@ class EmployeeListView(APIView):
             employee = Employee.objects.create(full_name=full_name, email=email, department=department)
             data = {
                 'id': employee.id,
-                'full_name': employee.full_name,
+                'name': employee.full_name,
                 'email': employee.email,
-                'department': employee.department.name if employee.department else None
+                'dept': employee.department.name if employee.department else None
             }
             return Response({'employee': data}, status=201)
         
@@ -52,7 +53,7 @@ class EmployeeListView(APIView):
             return Response({'error': 'Employee with this email already exists'}, status=400)
         
         except Exception as e:
-            return Response({'error': f"Something went wrong"}, status=500)
+            return Response({'error': f"Something went wrong: {e}"}, status=500)
     
 
 class EmployeeDetailView(APIView):
@@ -64,7 +65,8 @@ class EmployeeDetailView(APIView):
                 'id': employee.id,
                 'full_name': employee.full_name,
                 'email': employee.email,
-                'department': employee.department.name if employee.department else None
+                'department': employee.department.name if employee.department else None,
+                "join_date": employee.created_at
             }
             return Response({'employee': data})
         except Employee.DoesNotExist:
@@ -298,3 +300,47 @@ class StatisticsView(APIView):
         except Exception as e:
             
             return Response({'error': "Something went wrong"}, status=500)
+        
+
+@api_view(['GET'])
+def recent_attendence(request):
+    try:
+        recent_attendance = Attendance.objects.filter(deleted_at__isnull=False).order_by('-date')[:10].values('id', 'date', 'status')
+        return Response({'recentAttendance': recent_attendance})
+    
+    except Exception as e:
+        print(e)
+        return Response({'error': "Something went wrong"}, status=500)
+    
+
+#  Expected: { totalEmployees: 124, presentToday: 110, AbsentToday: 12, pending: 2 }
+@api_view(['GET'])
+def dashboar_stats(request):
+    try:
+        total_employees = Employee.objects.filter(deleted_at__isnull=True).count()
+        present_today = Attendance.objects.filter(deleted_at__isnull=True, status=True).count()
+        on_leave = Attendance.objects.filter(deleted_at__isnull=True, status=False).count()
+        pending = Attendance.objects.filter(deleted_at__isnull=True, status=None).count()
+        return Response({'totalEmployees': total_employees, 'presentToday': present_today, 'onLeave': on_leave, 'pending': pending})
+    
+    except Exception as e:
+        print(e)
+        return Response({'error': "Something went wrong"}, status=500)
+    
+
+# Expected: [{ name: 'Engineering', count: 65, total: 100 }, ...]
+@api_view(['GET'])
+def get_departments(request):
+    try:
+        total_employees = Employee.objects.count()
+        stats = Department.objects.values('name') \
+                                   .annotate(count=Count('employee')) \
+                                   .order_by('-created_at')
+        results = list(stats)
+        for entry in results:
+            entry['total'] = total_employees
+
+        return Response({'stats': results})
+    except Exception as e:
+        print(e)
+        return Response({'error': "Something went wrong"}, status=500)

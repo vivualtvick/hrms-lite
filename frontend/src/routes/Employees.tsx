@@ -1,76 +1,144 @@
-import { useState } from "react";
-import { Plus, Search, Filter, Trash2, X } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Search, Filter, Trash2, X, Loader2, AlertCircle, UserPlus, Users, Calendar, Briefcase, Activity, Eye } from "lucide-react";
 import toast from "react-hot-toast";
+import { getEmployees, createEmployee, deleteEmployee } from "../services/employeeService";
+import Modal from "../components/modal";
+import { getDepartments } from "../services/departmentService";
+import { Link, useNavigate } from 'react-router-dom';
 
-const MOCK_EMPLOYEES = [
-  { id: "EMP001", name: "Alice Johnson", email: "alice@company.com", dept: "Engineering" },
-  { id: "EMP002", name: "Bob Smith", email: "bob@company.com", dept: "Marketing" },
-  { id: "EMP003", name: "Charlie Davis", email: "charlie@company.com", dept: "Design" },
-];
 
 export default function Employees() {
-  // State for List Logic
-  const [employees, setEmployees] = useState(MOCK_EMPLOYEES);
+  const queryClient = useQueryClient();
+  
+  // --- UI STATE ---
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedDept, setSelectedDept] = useState("All");
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [empToDelete, setEmpToDelete] = useState<{ id: string; name: string } | null>(null);
 
-  // State for Add Employee Form
-  const [formData, setFormData] = useState({ id: "", name: "", email: "", dept: "Engineering" });
+  const navigate = useNavigate();
+  
+  // Add Employee Form State
+  const [formData, setFormData] = useState({ 
+    name: "", 
+    email: "", 
+    dept: "" 
+  });
 
-  const handleAddEmployee = (e: React.FormEvent) => {
+  // --- API DATA FETCHING ---
+  const { data: employees, isLoading, isError, error } = useQuery({
+    queryKey: ["employees"],
+    queryFn: getEmployees,
+  });
+
+  const { data: departments, isLoading: isLoadingDepartments } = useQuery({
+    queryKey: ["departments"],
+    queryFn: getDepartments,
+  });
+
+  const employeeList = useMemo(() => (Array.isArray(employees?.employees) ? employees?.employees : []), [employees?.employees]);
+
+  // --- FILTER LOGIC ---
+  const filteredEmployees = useMemo(() => {
+    return employeeList.filter((emp: any) => {
+      const matchesSearch = 
+        emp.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+        emp.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        emp.id?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesDept = selectedDept === "All" || emp.dept === selectedDept;
+      return matchesSearch && matchesDept;
+    });
+  }, [searchTerm, selectedDept, employeeList]);
+
+  // --- MUTATIONS ---
+  const addMutation = useMutation({
+    mutationFn: createEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setIsModalOpen(false);
+      setFormData({ name: "", email: "", dept: "" });
+      toast.success("Employee added successfully");
+    },
+    onError: (err: any) => toast.error(err.response?.data?.message || "Failed to add employee"),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteEmployee,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setEmpToDelete(null);
+      toast.success("Employee removed");
+    },
+    onError: () => toast.error("Error deleting employee"),
+  });
+
+  const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Basic Validation (Matches assignment requirements)
-    if (!formData.id || !formData.name || !formData.email) {
-      return toast.error("All fields are required");
+    if (!formData.name || !formData.email || !formData.dept) {
+      return toast.error("Please fill all fields");
     }
-    if (employees.some(emp => emp.id === formData.id)) {
-      return toast.error("Employee ID must be unique");
-    }
-
-    setEmployees([formData, ...employees]);
-    setIsModalOpen(false);
-    setFormData({ id: "", name: "", email: "", dept: "Engineering" });
-    toast.success("Employee added successfully!");
+    addMutation.mutate(formData);
   };
+
+  if (isLoading) return (
+    <div className="flex h-96 flex-col items-center justify-center text-slate-500">
+      <Loader2 className="animate-spin mb-4 text-indigo-600" size={40} />
+      <p className="font-medium">Loading workforce data...</p>
+    </div>
+  );
+
+  if (isError) return (
+    <div className="p-12 text-center bg-red-50 border border-red-100 rounded-2xl text-red-600">
+      <AlertCircle className="mx-auto mb-4" size={48} />
+      <h3 className="text-lg font-bold">Failed to load employees</h3>
+      <p className="text-sm opacity-80">{(error as any).message}</p>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
+      {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Employees</h1>
-          <p className="text-slate-500">Manage your workforce and their roles.</p>
+          <p className="text-slate-500 text-sm">Manage and monitor your team members.</p>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all shadow-sm active:scale-95"
+          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-all shadow-lg shadow-indigo-100 active:scale-95"
         >
-          <Plus size={18} />
+          <UserPlus size={18} />
           Add Employee
         </button>
       </div>
 
       {/* Filter Bar */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-4 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder="Search by name or email..." 
-              className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-100 outline-none text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, email, or ID..." 
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none transition-all text-sm"
             />
           </div>
           <div className="flex gap-2">
-            <select className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-lg p-2.5 outline-none">
+            <select 
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="bg-slate-50 border border-slate-200 text-slate-700 text-sm rounded-xl px-4 py-2.5 outline-none focus:border-indigo-500 cursor-pointer"
+            >
               <option value="All">All Departments</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Marketing">Marketing</option>
+              {departments.departments.map(dept => <option key={dept.id} value={dept.id}>{dept.name}</option>)}
             </select>
             <button 
               onClick={() => setShowMoreFilters(!showMoreFilters)}
-              className={`flex items-center gap-2 px-4 py-2 border rounded-lg text-sm font-medium transition-all ${showMoreFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+              className={`flex items-center gap-2 px-4 py-2.5 border rounded-xl text-sm font-medium transition-all ${showMoreFilters ? 'bg-indigo-50 border-indigo-200 text-indigo-600' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
             >
               <Filter size={16} />
               {showMoreFilters ? 'Hide Filters' : 'More Filters'}
@@ -78,34 +146,76 @@ export default function Employees() {
           </div>
         </div>
 
-        {/* More Filters Section (Conditional) */}
+        {/* --- MORE FILTERS SECTION --- */}
         {showMoreFilters && (
-          <div className="px-4 pb-4 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-100 bg-slate-50/50 animate-in fade-in slide-in-from-top-2">
-            <FilterInput label="Joined Date" type="date" />
-            <FilterInput label="Status" type="select" options={["Active", "Inactive", "On Leave"]} />
-            <FilterInput label="Employee Type" type="select" options={["Full-time", "Contract", "Intern"]} />
+          <div className="px-4 pb-4 pt-2 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-slate-100 bg-slate-50/50 animate-in slide-in-from-top-2 duration-300">
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><Calendar size={12}/> Joined After</label>
+              <input type="date" className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500" />
+            </div>
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><Activity size={12}/> Status</label>
+              <select className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
+                <option>Active</option>
+                <option>On Leave</option>
+                <option>Terminated</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="flex items-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest"><Briefcase size={12}/> Employment Type</label>
+              <select className="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500">
+                <option>Full-time</option>
+                <option>Contract</option>
+                <option>Freelance</option>
+              </select>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Table Section (Using existing table structure) */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+      {/* Table */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            {/* ... table headers ... */}
+            <thead className="bg-slate-50/50 border-b border-slate-200">
+              <tr>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Employee ID</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Name</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Email</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400">Department</th>
+                <th className="px-6 py-4 text-[11px] font-bold uppercase tracking-wider text-slate-400 text-right">Action</th>
+              </tr>
+            </thead>
             <tbody className="divide-y divide-slate-100">
-              {employees.map((emp) => (
-                <tr key={emp.id} className="hover:bg-slate-50/50">
-                  <td className="px-6 py-4 text-sm font-medium text-indigo-600">{emp.id}</td>
+              {filteredEmployees.map((emp: any) => (
+                <tr key={emp.id} className="hover:bg-slate-50/30 transition-colors group">
+                  <td className="px-6 py-4 text-sm font-medium text-indigo-600 font-mono">{emp.id}</td>
                   <td className="px-6 py-4">
-                    <p className="text-sm font-semibold text-slate-900">{emp.name}</p>
-                    <p className="text-xs text-slate-500">{emp.email}</p>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-bold text-slate-900">{emp.full_name}</span>
+                    </div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-800">{emp.dept}</span>
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600">
+                      {emp.email}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600">
+                      {emp.email}
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button onClick={() => setEmployees(employees.filter(e => e.id !== emp.id))} className="p-2 text-slate-400 hover:text-red-600 transition-all">
+                    <button  
+                      onClick={() => navigate(`/employees/${emp.id}`)}
+                      className="p-2 mr-2 text-blue-500 bg-blue-50 hover:text-blue-50 hover:bg-blue-600 rounded-lg transition-all"
+                    >
+                      <Eye />
+                    </button>
+                    <button 
+                      onClick={() => setEmpToDelete({ id: emp.id, name: emp.name })}
+                      className="p-2 text-red-500 bg-red-50 hover:text-red-50 hover:bg-red-600 rounded-lg transition-all"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -113,99 +223,98 @@ export default function Employees() {
               ))}
             </tbody>
           </table>
+          {filteredEmployees.length === 0 && (
+            <div className="py-20 text-center">
+              <Users className="mx-auto text-slate-200 mb-2" size={48} />
+              <p className="text-slate-500 font-medium">No results found.</p>
+            </div>
+          )}
         </div>
       </div>
 
       {/* --- ADD EMPLOYEE MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-              <h3 className="text-xl font-bold text-slate-900">Add New Employee</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X size={20} />
-              </button>
+            <div className="p-6 border-b flex justify-between items-center">
+              <h3 className="text-lg font-bold text-slate-900">Add New Employee</h3>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20} /></button>
             </div>
             
-            <form onSubmit={handleAddEmployee} className="p-6 space-y-4">
-              <FormInput 
-                label="Employee ID" 
-                placeholder="EMP123" 
-                value={formData.id}
-                onChange={(e) => setFormData({...formData, id: e.target.value})}
-              />
+            <form onSubmit={handleAddSubmit} className="p-6 space-y-4">
               <FormInput 
                 label="Full Name" 
                 placeholder="John Doe" 
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
+                onChange={(e: any) => setFormData({...formData, name: e.target.value})}
               />
               <FormInput 
                 label="Email Address" 
                 type="email" 
                 placeholder="john@company.com" 
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
+                onChange={(e: any) => setFormData({...formData, email: e.target.value})}
               />
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Department</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Department
+                </label>
                 <select 
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 text-sm"
+                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm"
                   value={formData.dept}
-                  onChange={(e) => setFormData({...formData, dept: e.target.value})}
+                  required
+                  onChange={(e) => setFormData({ ...formData, dept: e.target.value })}
                 >
-                  <option>Engineering</option>
-                  <option>Marketing</option>
-                  <option>Design</option>
-                  <option>HR</option>
+                  {isLoadingDepartments ? (
+                    <option disabled>Loading...</option>
+                  ) : (
+                    <>
+                      <option value="" disabled>Select a department...</option>
+                      {departments?.departments?.map((dept: any) => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                    </>
+                  )}
                 </select>
               </div>
 
-              <div className="pt-4 flex gap-3">
-                <button 
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
+              <div className="pt-2">
                 <button 
                   type="submit"
-                  className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-100"
+                  disabled={addMutation.isPending}
+                  className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-50 transition-all shadow-lg shadow-indigo-100"
                 >
-                  Add Employee
+                  {addMutation.isPending ? "Creating Profile..." : "Confirm Add Employee"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Delete Modal */}
+      <Modal 
+        isOpen={!!empToDelete} 
+        onClose={() => setEmpToDelete(null)} 
+        onConfirm={() => empToDelete && deleteMutation.mutate(empToDelete.id)}
+        type="destructive"
+        title="Delete Employee"
+        description={`Are you sure you want to delete ${empToDelete?.name}? This action is permanent.`}
+        confirmText={deleteMutation.isPending ? "Deleting..." : "Delete Permanently"}
+      />
     </div>
   );
 }
 
-// Helper Components for Cleaner Code
-function FilterInput({ label, type, options }: any) {
-  return (
-    <div className="space-y-1">
-      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{label}</label>
-      {type === "select" ? (
-        <select className="w-full p-2 bg-white border border-slate-200 rounded text-xs outline-none focus:border-indigo-500">
-          {options.map((opt: string) => <option key={opt}>{opt}</option>)}
-        </select>
-      ) : (
-        <input type={type} className="w-full p-2 bg-white border border-slate-200 rounded text-xs outline-none focus:border-indigo-500" />
-      )}
-    </div>
-  );
-}
-
+// Helper Components
 function FormInput({ label, ...props }: any) {
   return (
-    <div>
-      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">{label}</label>
+    <div className="space-y-1">
+      <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">{label}</label>
       <input 
-        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-500 text-sm transition-all"
+        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 text-sm transition-all"
         {...props}
       />
     </div>

@@ -13,4 +13,7 @@ urlpatterns = [
     path('attendance/delete/<int:id>/', AttendanceListView.as_view(), name='attendance-delete'),
     path('statistics/attendance/', AttendanceStatisticsView.as_view(), name='attendance-statistics'),
     path('statistics/', StatisticsView.as_view(), name='department-statistics'),
+    path('attendance/recent/', recent_attendence, name='employee-attendance-statistics'),
+    path('dashboard/stats', dashboar_stats, name='dashboard-stata'),
+    path('departments/stats', get_departments, name='departments-stats')
 ]

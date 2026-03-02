@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Calendar, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Save, Search } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const MOCK_ATTENDANCE = [
-  { id: "EMP001", name: "Alice Johnson", dept: "Engineering", status: "Present" },
-  { id: "EMP002", name: "Bob Smith", dept: "Marketing", status: "Absent" },
-  { id: "EMP003", name: "Charlie Davis", dept: "Design", status: "Present" },
-  { id: "EMP004", name: "Diana Prince", dept: "Engineering", status: "Present" },
+  { id: 1, name: "Alice Johnson", dept: "Engineering", status: "Present" },
+  { id: 2, name: "Bob Smith", dept: "Marketing", status: "Absent" },
+  { id: 3, name: "Charlie Davis", dept: "Design", status: "Present" },
+  { id: 4, name: "Diana Prince", dept: "Engineering", status: "Present" },
 ];
 
 export default function Attendance() {
@@ -85,7 +86,7 @@ export default function Attendance() {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button className="text-xs font-medium text-indigo-600 hover:underline">History</button>
+                    <Link to={`/employees/${emp.id}`} className="text-xs font-medium text-indigo-600 hover:underline">History</Link>
                   </td>
                 </tr>
               ))}

@@ -111,7 +111,7 @@ export default function Departments() {
                 <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600"><Building2 size={24} /></div>
                 <button
                   onClick={() => setDeptToDelete({ id: dept.id, name: dept.name })}
-                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md opacity-0 group-hover:opacity-100 transition-all"
+                  className="p-1.5 text-red-500 bg-red-50 hover:text-red-50 hover:bg-red-500 rounded-md transition-all"
                 >
                   <Trash2 size={18} />
                 </button>
