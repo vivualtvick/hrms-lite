@@ -2,10 +2,10 @@ import './App.css'
 import { Toaster } from 'react-hot-toast' // Ensure curly braces
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Layout from './components/layout'
-import Dashboard from './components/routes/Dashboard'
-import Employees from './components/routes/Employees'
-import Attendance from './components/routes/Attendance'
-import Departments from './components/routes/Departments'
+import Dashboard from './routes/Dashboard'
+import Employees from './routes/Employees'
+import Attendance from './routes/Attendance'
+import Departments from './routes/Departments'
 
 function App() {
   return (
