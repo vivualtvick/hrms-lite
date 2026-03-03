@@ -234,7 +234,23 @@ Repository: [vivualtvick/hrms-lite](https://github.com/vivualtvick/hrms-lite/mai
 
 Live App: [HRMS Lite on Vercel](https://hrms-lite-eosin-delta.vercel.app)
 
-Developed with ❤️ by developervick
+## 🛠️ Quick Troubleshooting
+1. Connection & CORS
+   1. Vercel URL: Must be in CSRF_TRUSTED_ORIGINS (with https://) and ALLOWED_HOSTS (without https://) in Railway.
+   2. Vite Variables: Ensure your variable starts exactly with VITE_ (e.g., VITE_API_URL).
+   3. Redeploy: Vercel requires a redeploy after adding environment variables to inject them into the build.
+
+2. Database & API
+   1. Migrations: If you see "Table not found," run python manage.py migrate in the Railway CMD/Shell.
+   2. Internal URL: Ensure DATABASE_URL matches the string in your Railway Postgres variables.
+   3. Debug Mode: If DEBUG=False, your ALLOWED_HOSTS must be 100% accurate or the site will return a 500 error.
+
+3. Build Failures
+   1. Root Directory: Double-check Vercel is pointing to /frontend and Railway is pointing to /backend.
+   2. Case Sensitivity: Ensure your imports match your filenames exactly (e.g., App.jsx vs app.jsx).
+
+Developed with ❤️ by developervick [Vivek Kustwar](https://linkedin.com/in/vivek-kustwar)
+
 
 
 
