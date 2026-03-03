@@ -53,7 +53,37 @@ A comprehensive, lightweight HR management solution designed to streamline emplo
 
 ```text
 ├── backend/        # Django project, API logic, and PostgreSQL configuration
+|   ├── core
+|   │   ├── asgi.py
+|   │   ├── __init__.py
+|   │   ├── __pycache__
+|   │   ├── settings.py
+|   │   ├── urls.py
+|   │   └── wsgi.py
+|   ├── docker-compose.local.yaml
+|   ├── Dockerfile
+|   ├── Dockerfile.local
+|   ├── eather
+|   │   ├── ...
+|   ├── entrypoint.sh
+|   ├── manage.py
+|   ├── media
+|   ├── requirements.txt
+|    └── static
 ├── frontend/       # React + Vite source code, Components, and Assets
+|   ├── dist
+|   ├── eslint.config.js
+|   ├── index.html
+|   ├── node_modules
+|   ├── package.json
+|   ├── package-lock.json
+|   ├── public
+|   ├── README.md
+|   ├── src
+|   ├── tsconfig.app.json
+|   ├── tsconfig.json
+|   ├── tsconfig.node.json
+|   └── vite.config.ts
 └── README.md       # Project documentation
 ```
 
@@ -100,6 +130,7 @@ Repository: [vivualtvick/hrms-lite](https://github.com/vivualtvick/hrms-lite/mai
 Live App: [HRMS Lite on Vercel](https://hrms-lite-eosin-delta.vercel.app)
 
 Developed with ❤️ by developervick
+
 
 
 
