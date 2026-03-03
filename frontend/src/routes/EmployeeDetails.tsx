@@ -238,7 +238,7 @@ export default function EmployeeDetails() {
         </div>
       </div>
       <Modal 
-        isOpen={!!attendanceToDelete.logId} 
+        isOpen={!!attendanceToDelete?.logId} 
         onClose={() => setAttendanceToDelete(null)} 
         onConfirm={() => attendanceToDelete && attandanceDeleteMutation.mutate(attendanceToDelete.logId)}
         type="destructive"
